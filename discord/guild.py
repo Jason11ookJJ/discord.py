@@ -167,7 +167,7 @@ class Guild(Hashable):
                  'name', 'id', 'unavailable', 'banner', 'region', '_state',
                  '_roles', '_member_count', '_large',
                  'owner_id', 'mfa_level', 'emojis', 'features',
-                 'verification_level', 'explicit_content_filter', 'splash',
+                 'verification_level', 'explicit_content_filter', 'splash', '_presences',
                  '_voice_states', '_system_channel_id', 'default_notifications',
                  'description', 'max_presences', 'max_members', 'max_video_channel_users',
                  'premium_tier', 'premium_subscription_count', '_system_channel_flags',
@@ -287,6 +287,9 @@ class Guild(Hashable):
         for r in guild.get('roles', []):
             role = Role(guild=self, data=r, state=state)
             self._roles[role.id] = role
+        self._presences = {}
+        for p in guild.get("presences", []):
+            self._presences[int(p["user"]["id"])] = p
 
         self.mfa_level = guild.get('mfa_level')
         self.emojis = tuple(map(lambda d: state.store_emoji(self, d), guild.get('emojis', [])))
@@ -310,7 +313,7 @@ class Guild(Hashable):
         self_id = self._state.self_id
         for mdata in guild.get('members', []):
             member = Member(data=mdata, guild=self, state=state)
-            if cache_joined or (cache_online_members and member.raw_status != 'offline') or member.id == self_id:
+            if cache_joined or (cache_online_members and member.id in self._presences.keys()) or member.id == self_id:
                 self._add_member(member)
 
         self._sync(guild)
